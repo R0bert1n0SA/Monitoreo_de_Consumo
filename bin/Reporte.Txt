@@ -1,0 +1,4 @@
+00001|Juan Perez                              |01300|
+00002|Ana Gonzalez                            |01050|
+00003|Carlos Ramirez                          |01100|
+00004|Maria Lopez                             |01300|
