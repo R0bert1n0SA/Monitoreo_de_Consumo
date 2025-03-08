@@ -3,7 +3,6 @@
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           *> Definición de archivos secuenciales con su estado.
            SELECT AnioActual ASSIGN TO 'Consumo2025.DAT'
                ORGANIZATION IS SEQUENTIAL
                ACCESS MODE IS SEQUENTIAL
@@ -52,9 +51,28 @@
            PERFORM Iniciar
        EXIT PROGRAM.
 
+      *>================================================================*
+       *> Sección de Inicio
+       *> Verifica archivos y calcula consumo
+      *>================================================================*
+       S-Inicio SECTION.
+           *> Procedimiento que verifica la existencia de archivos y realiza cálculos.
+           Iniciar.
+               PERFORM Verificar
+               PERFORM Anio-Actual
+               PERFORM Anio-Anterior
+               CLOSE AnioActual,AnioAnterior
+               PERFORM Calculos
+           EXIT.
 
-       Verificar SECTION.
-           Verificacion.
+      *>================================================================*
+
+      *>================================================================*
+       *> Sección Verificar
+       *> Verifica la existencia de archivos
+      *>================================================================*
+       S-Verificar SECTION.
+           Verificar.
                OPEN INPUT AnioAnterior
                OPEN INPUT AnioActual
                MOVE 0 TO P-Flag
@@ -69,8 +87,6 @@
                    PERFORM VerificarAnterior
                END-IF
            EXIT.
-
-
 
 
            VerificarActual.
@@ -96,22 +112,14 @@
                END-IF
            EXIT.
 
-
-       Inicio SECTION.
-           *> Procedimiento que verifica la existencia de archivos y realiza cálculos.
-           Iniciar.
-               PERFORM Verificar
-               PERFORM Anio-Actual
-               PERFORM Anio-Anterior
-               CLOSE AnioActual,AnioAnterior
-               *> Cálculo del porcentaje de aumento de consumo.
-               PERFORM Calculos
-           EXIT.
+      *>================================================================*
 
 
-
+      *>================================================================*
+       *> Sección Recorrer
+       *> Lee y suma los consumos de cada año
+      *>================================================================*
        Recorrer SECTION.
-           *> Procedimiento que suma el consumo del año actual.
            Anio-Actual.
                PERFORM UNTIL WS-Flag = 'Y'
                    READ AnioActual INTO ConsumoActualR
@@ -139,21 +147,19 @@
       *>================================================================*
 
 
-
-
-
-
-
       *>================================================================*
+       *> Sección de Calcular
+       *> Calcula el aumento de consumo y costo total
       *>================================================================*
-       Calcular SECTION.
+       S-Calcular SECTION.
            Calculos.
-               COMPUTE P-Aumento = ((sum2024 - sum2023) / sum2024) * 100
+               COMPUTE P-Aumento = ((sum2024 - sum2023) / sum2023) * 100
                MOVE sum2024 TO P-Consumo
                COMPUTE P-Gasto = (P-Consumo * P-Costo)
            EXIT.
       *>================================================================*
-
-           *> Punto de salida del programa.
-           salir.
-           EXIT.
+      *>================================================================*
+       *> Sección de Salida
+      *>================================================================*
+       salir.
+       EXIT.

@@ -107,26 +107,18 @@
 
        PROCEDURE DIVISION USING LK-Parametros.
        MAIN-PROCEDURE.
-           PERFORM Verificar
+           PERFORM Iniciar
            GOBACK
        EXIT PROGRAM.
 
-           Ordenar.
-               SORT Work-FileM
-               ON ASCENDING KEY W-ID
-               USING Maestro
-               GIVING MaestroO
 
-               SORT Work-FileD
-               ON ASCENDING KEY W-ID
-               USING Detalle
-               GIVING DetalleO
-           EXIT.
+      *>================================================================*
+       *>  Seccion Iniciar
+       *>  Verifica e iniia el Proceso de Maestro Detalle
+      *>================================================================*
 
-
-
-           *> Procedimiento que verifica la existencia de archivos y realiza cálculos.
-           Verificar.
+       S-Iniciar SECTION.
+           Iniciar.
                OPEN INPUT Maestro
                OPEN INPUT Detalle
                IF WS-File-StatusMas = '00' AND
@@ -140,6 +132,47 @@
                ELSE
                    DISPLAY "ERROR"
                END-IF
+           EXIT.
+
+      *>================================================================*
+
+      *>================================================================*
+        *> Seccion Ordenar
+        *> Se encarga de ordenar los archivos
+      *>================================================================*
+       S-Ordenar SECTION.
+           Ordenar.
+               SORT Work-FileM
+               ON ASCENDING KEY W-ID
+               USING Maestro
+               GIVING MaestroO
+
+               SORT Work-FileD
+               ON ASCENDING KEY W-ID
+               USING Detalle
+               GIVING DetalleO
+           EXIT.
+
+      *>================================================================*
+
+      *>================================================================*
+        *> Seccion Maestro Detalle
+        *> Contiene todos los modulos del proceso maestro detalle
+      *>================================================================*
+       S-Maestro-Detalle SECTION.
+
+           Leer-Maestro.
+               READ MaestroO INTO MaestroOR
+                   AT END
+                       MOVE "Y" TO FlagMaster
+               END-READ
+           EXIT.
+
+           Leer-Detalle.
+               READ DetalleO INTO DetalleOR
+                   AT END
+                       MOVE "Y" TO FlagDetalle
+               END-READ
            EXIT.
 
            Maestro-Detalle.
@@ -159,49 +192,36 @@
            EXIT.
 
 
-           Leer-Maestro.
-               READ MaestroO INTO MaestroOR
-                   AT END
-                       MOVE "Y" TO FlagMaster
-               END-READ
-           EXIT.
-
-           Leer-Detalle.
-               READ DetalleO INTO DetalleOR
-                   AT END
-                       MOVE "Y" TO FlagDetalle
-               END-READ
-           EXIT.
-
-
            Contar-Mes.
                 EVALUATE DO-Mes
                    WHEN "Enero"
-                       ADD 1 TO Meses(1)
+                       ADD DO-Consumo TO Meses(1)
                    WHEN "Febrero"
-                       ADD 1 TO Meses(2)
+                       ADD DO-Consumo TO Meses(2)
                    WHEN "Marzo"
-                       ADD 1 TO Meses(3)
+                       ADD DO-Consumo TO Meses(3)
                    WHEN "Abril"
-                       ADD 1 TO Meses(4)
+                       ADD DO-Consumo TO Meses(4)
                    WHEN "Mayo"
-                       ADD 1 TO Meses(5)
+                       ADD DO-Consumo TO Meses(5)
                    WHEN "Junio"
-                       ADD 1 TO Meses(6)
+                       ADD DO-Consumo TO Meses(6)
                    WHEN "Julio"
-                       ADD 1 TO Meses(7)
+                       ADD DO-Consumo TO Meses(7)
                    WHEN "Agosto"
-                       ADD 1 TO Meses(8)
+                       ADD DO-Consumo TO Meses(8)
                    WHEN "Septiembre"
-                       ADD 1 TO Meses(9)
+                       ADD DO-Consumo TO Meses(9)
                    WHEN "Octubre"
-                       ADD 1 TO Meses(10)
+                       ADD DO-Consumo TO Meses(10)
                    WHEN "Noviembre"
-                       ADD 1 TO Meses(11)
+                       ADD DO-Consumo TO Meses(11)
                    WHEN "Diciembre"
-                       ADD 1 TO Meses(12)
+                       ADD DO-Consumo TO Meses(12)
                 END-EVALUATE
            EXIT.
+
+
 
            Evaluar.
                PERFORM UNTIL FlagMaster = 'Y' OR FlagDetalle = 'Y'
@@ -228,14 +248,20 @@
                        PERFORM Leer-Detalle
                    END-PERFORM
                END-IF
-
            *> Agregar el último registro al reporte si hay un consumo acumulado
                IF WS-Total > 0 THEN
                    PERFORM Agregar-Report
                END-IF
            EXIT.
 
-       Informe SECTION.
+
+
+      *>================================================================*
+      *>================================================================*
+        *> Secccion Informe
+        *> Contiene todas las operaciones  sobre el Reporte
+      *>================================================================*
+       S-Informe SECTION.
            Reportar.
                PERFORM UNTIL FlagReport = "Y"
                    READ Reporte INTO Reporte-R
@@ -260,13 +286,4 @@
                MOVE "|" To R-FILLER3
                WRITE Reporte-R
            EXIT.
-
-
-
-
-
-
-
-           *> Punto de salida del programa.
-           salir.
-           EXIT.
+      *>================================================================*

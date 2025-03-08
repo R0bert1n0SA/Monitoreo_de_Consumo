@@ -3,7 +3,7 @@
        DATA DIVISION.
        WORKING-STORAGE SECTION.
            01 WS-Flag          PIC 9(1) VALUE 0.
-           01 WS-opcion        PIC 9(1).
+           01 WS-opcion        PIC 9(2).
            01 WS-EnterT        PIC X(1).
            01 WS-Meses.
                05 Indice        PIC 9(2).
@@ -24,14 +24,14 @@
                05 gasto         PIC 9(12)V99.
                05 Mensaje       PIC X(45).
            01 WS-Reporte-Parametros.
-               05 Tabla         PIC X(15) OCCURS 12 TIMES.
+               05 Tabla         PIC 9(15) OCCURS 12 TIMES.
                05 Total         PIC 9(10).
                05 ConsumoR      PIC 9(10).
                05 Promedio      PIC 9(10)V99.
            01 WS-Maximo-Minimo-Parametros.
                05 IDclie        PIC 9(5).
-               05 IDMax         PIC 9(5).
-               05 IDMin         PIC 9(5).
+               05 NombreMax     PIC X(30).
+               05 NombreMin     PIC X(30).
                05 Mayor         PIC 9(10).
                05 Minimo        PIC 9(10).
                05 rango-Ini     PIC 9(5).
@@ -39,13 +39,33 @@
                05 Bajo          PIC 9(5).
                05 Alto          PIC 9(5).
                05 ConsumoT      PIC 9(10).
-               05 MensajeM       PIC X(45).
-
+               05 MensajeM      PIC X(45).
+               05 Mensaje11     PIC X(100).
+               05 Cont-Bajo     PIC 9(15).
+               05 Cont-Medio    PIC 9(15).
+               05 Cont-Alto     PIC 9(15).
+           01 Aux               PIC 9(3)V99.
 
        PROCEDURE DIVISION.
        MAIN-PROGRAM.
-           PERFORM Menu
+           PERFORM Inicio
        STOP RUN.
+
+      *>================================================================*
+        *> Seccion Inicio
+        *> Inicia la ejecucion del programa y ejecuta procesos batch
+      *>================================================================*
+       S-Inicio SECTION.
+           Inicio.
+               MOVE 0 TO Mayor
+               MOVE 9999999999 TO Minimo
+               PERFORM IniciarMes
+               CALL "Consumo" USING WS-Consumo-Parametros
+               CALL "Reporte" USING WS-Reporte-Parametros
+               PERFORM Meses-Recorrer
+               PERFORM Menu
+           EXIT.
+
 
            IniciarMes.
                MOVE "Enero"      TO MesNombre(1)
@@ -63,14 +83,16 @@
            EXIT.
 
 
+      *>================================================================*
 
+      *>================================================================*
+        *> Seccion Menu
+        *> Contine toda la logica de iteraccion
+      *>================================================================*
+
+       S-Menu SECTION.
        *> Procedimiento para mostrar el menú principal y gestionar la interacción del usuario.
            Menu.
-               PERFORM IniciarMes
-               CALL "Consumo" USING WS-Consumo-Parametros
-               CALL "Reporte" USING WS-Reporte-Parametros
-               PERFORM Meses-Recorrer
-               *> Bucle que muestra el menú hasta que el usuario elija salir (WS-Flag = 1).
                PERFORM UNTIL WS-Flag = 1
                    DISPLAY "--------------Consumos---------------"
                    DISPLAY "1.Mostrar Total Global de Consumo."
@@ -87,9 +109,9 @@
                    "consumo bajo medio o alto"
                    DISPLAY "12.Mostrar Distribucion Porcentual de "
                    "consumo Por mes"
-                   DISPLAY "0.Salir"
-                   ACCEPT Ws-Opcion
-                   DISPLAY X"1B" & "[2J" *> Código ANSI para limpiar la pantalla
+                   DISPLAY "13.Salir"
+                   ACCEPT WS-Opcion
+                   DISPLAY X"1B" & "[2J"
                    PERFORM Evaluar
                END-PERFORM
            EXIT.
@@ -101,69 +123,135 @@
                    WHEN 1
                        DISPLAY "Consumo GLOBAL: " Consumo
                    WHEN 2
-                       PERFORM Opcion_2
+                       PERFORM CompararAnio
                    WHEN 3
                        DISPLAY "El Costo total del Consumo: "Gasto
                    WHEN 4
-                       PERFORM Meses-mostrar
+                       PERFORM Consumo-Mensual
                    WHEN 5
-                       DISPLAY "Mes con mayor consumo fue" MesMax
-                       " con :" Max " KWH"
-                       DISPLAY "Mes con Menor consumo fue" MesMin
-                       " con :" Min " KWH"
+                       PERFORM Mostrar-Mayor-Menor-Meses
                    WHEN 6
                        DISPLAY "Consumo Promedio entre clientes: "
                        Promedio
                    WHEN 7
-                       DISPLAY "Cliente con mayor Consumo: "IDMax
-                       DISPLAY "Cliente con menor Consumo: "IDMin
+                       PERFORM Mostrar-Mayor-Menor-Consumo
                    WHEN 8
-                       DISPLAY "ID del cliente a buscar: "
-                       ACCEPT IDclie
-                       CALL "Maximo-Minimo"
-                       USING WS-opcion,WS-Maximo-Minimo-Parametros
-                       DISPLAY MensajeM
+                       PERFORM Consumo-Total-Cliente
                    WHEN 9
-                       DISPLAY "Ingrese valor inicio del rango: "
-                       ACCEPT rango-Ini
-                       DISPLAY "Ingrese valor fin del rango: "
-                       ACCEPT rango-Fin
-                       CALL "Maximo-Minimo"
-                       USING WS-opcion,WS-Maximo-Minimo-Parametros
+                       PERFORM Clientes-Rango
                    WHEN 10
-                       CALL "Maximo-Minimo"
-                       USING WS-opcion, WS-Maximo-Minimo-Parametros
+                       PERFORM Mostrar-Reporte
                    WHEN 11
-                       DISPLAY "Consumo Bajo: "
-                       ACCEPT Bajo
-                       DISPLAY "Consumo Alto: "
-                       ACCEPT Alto
-                       CALL "Maximo-Minimo"
-                       CALL "Maximo-Minimo"
-                       USING WS-opcion, WS-Maximo-Minimo-Parametros
+                       PERFORM Tipos-Consumo
                    WHEN 12
                        DISPLAY "Promedio Mensual por mes: "Mensual
-                   WHEN 0
+                   WHEN 13
                        DISPLAY "Gracias Por Usar la App "
                        STOP RUN
                    WHEN OTHER
                         DISPLAY "ERROR: opcion no valida"
                END-EVALUATE
-           *> Mensaje para que el usuario presione Enter antes de continuar.
+               PERFORM Continuar
+           EXIT.
+
+           Continuar.
                DISPLAY "Presione Enter para continuar"
                ACCEPT WS-EnterT
                DISPLAY X"1B" & "[2J"
            EXIT.
 
-       *> Mensaje para que el usuario presione Enter antes de continuar.
-           Opcion_2.
+      *>================================================================*
+
+      *>================================================================*
+         *> SECCION Opciones
+         *> Contiene Todos Los modulos de las opciones de logica amplia
+      *>================================================================*
+       S-Opciones SECTION.
+
+           Llamar-Maximo-Minimo.
+               CALL "Maximo-Minimo" USING WS-opcion
+              ,WS-Maximo-Minimo-Parametros
+           EXIT.
+
+
+           CompararAnio.
                IF Comparacion = 0 THEN
-                   DISPLAY "El consumo con respecto al año anterior "
-                   "aumento un: "Aumento " %"
+                   MOVE Aumento TO Aux
+                   IF Aumento > 0 THEN
+                       DISPLAY "El consumo con respecto al año anterior"
+                       " aumento un: "Aux " %"
+                   ELSE
+                       DISPLAY "El consumo con respecto al año anterior"
+                       " disminuyo un: "Aux " %"
+                   END-IF
                ELSE
                    DISPLAY "No Hay informacion"
                END-IF
            EXIT.
+
+
+
+           Mostrar-Mayor-Menor-Meses.
+               DISPLAY "Mes con mayor consumo fue" MesMax
+               " con :" Max " KWH"
+               DISPLAY "Mes con Menor consumo fue" MesMin
+               " con :" Min " KWH"
+           EXIT.
+
+
+
+           Mostrar-Mayor-Menor-Consumo.
+               PERFORM Llamar-Maximo-Minimo
+               DISPLAY "Cliente con mayor Consumo: "NombreMax
+               DISPLAY "Cliente con menor Consumo: "NombreMin
+           EXIT.
+
+
+
+           Consumo-Total-Cliente.
+               DISPLAY "ID del cliente a buscar: "
+               ACCEPT IDclie
+               PERFORM Llamar-Maximo-Minimo
+               DISPLAY MensajeM
+           EXIT.
+
+
+           Clientes-Rango.
+               DISPLAY "Ingrese valor inicio del rango: "
+               ACCEPT rango-Ini
+               DISPLAY "Ingrese valor fin del rango: "
+               ACCEPT rango-Fin
+               DISPLAY "--------Clientes en Rango---------"
+               PERFORM Llamar-Maximo-Minimo
+           EXIT.
+
+
+           Mostrar-Reporte.
+               DISPLAY "--------Reporte Clientes---------"
+               PERFORM Llamar-Maximo-Minimo
+           EXIT.
+
+
+
+           Tipos-Consumo.
+               DISPLAY "Consumo Bajo: "
+               ACCEPT Bajo
+               DISPLAY "Consumo Alto: "
+               ACCEPT Alto
+               PERFORM Llamar-Maximo-Minimo
+               DISPLAY Mensaje11
+               MOVE 0 TO Cont-Bajo,Cont-Medio,Cont-Alto
+           EXIT.
+
+
+           Consumo-Mensual.
+               PERFORM VARYING Indice FROM 1 BY 1 UNTIL Indice > 12
+                    MOVE MesNombre(Indice) TO Mes
+                    DISPLAY Mes ":" Tabla(Indice)
+               END-PERFORM
+           EXIT.
+      *>================================================================*
+
 
 
 
@@ -184,12 +272,4 @@
                     END-IF
                END-PERFORM
                COMPUTE  Mensual=(Consumo / UltimoMes )
-           EXIT.
-
-
-           Meses-mostrar.
-               PERFORM VARYING Indice FROM 1 BY 1 UNTIL Indice > 12
-                    MOVE MesNombre(Indice) TO Mes
-                    DISPLAY Mes ":" Tabla(Indice)
-               END-PERFORM
            EXIT.
